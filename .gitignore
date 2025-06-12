@@ -1,0 +1,8 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# seadas installers
+install/seadas_9.1.0_linux64_installer.sh
+install/seadas_7.5.3_linux64_installer.sh
