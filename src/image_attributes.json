@@ -1,0 +1,44 @@
+{
+    "seadas_products_chlor_a_oceancolor.tif": {
+        "band": "clor_a",
+        "color_pallete": "oceancolor_standard.cpd",
+        "min": 0.01,
+        "max": 20.0
+    },
+    "seadas_products_chlor_a_gray_scale.tif": {
+        "band": "clor_a",
+        "color_pallete": "gray_scale.cpd",
+        "min": 0.01,
+        "max": 20.0
+    },
+    "seadas_products_cloud_albedo.tif": {
+        "band": "cloud_albedo",
+        "color_pallete": "gray_scale.cpd",
+        "min": 0.0010946,
+        "max": 0.1753929
+    },
+    "seadas_products_diatoms_hirata.tif": {
+        "band": "diatoms_hirata",
+        "color_pallete": "diatoms.cpd",
+        "min": 0.1029935,
+        "max": 0.7429915
+    },
+    "seadas_products_dinoflagellates_hirata.tif": {
+        "band": "dinoflagellates_hirata",
+        "color_pallete": "dinoflagellates.cpd",
+        "min": 0.1029935,
+        "max": 0.7429915
+    },
+    "seadas_products_greenalgae_hirata.tif": {
+        "band": "greenalgae_hirata",
+        "color_pallete": "greenalgae.cpd",
+        "min": 0.1029935,
+        "max": 0.7429915
+    },
+    "seadas_products_prymnesiophytes_hirata.tif": {
+        "band": "prymnesiophytes_hirata",
+        "color_pallete": "prymnesiophytes.cpd",
+        "min": 0.1029935,
+        "max": 0.7429915
+    }
+}

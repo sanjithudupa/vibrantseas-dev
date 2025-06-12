@@ -1,0 +1,27 @@
+#SeaDAS Color Palette Definition File
+#Sat May 08 15:48:26 EDT 2021
+isLogScaled=false
+autoDistribute=false
+numPoints=11
+color0=255,248,25
+color1=255,229,0
+color2=255,203,17
+color3=255,184,0
+color4=255,176,0
+color5=255,156,0
+color6=255,135,0
+color7=255,117,0
+color8=255,96,0
+color9=255,75,0
+color10=255,57,0
+sample0=0.0
+sample1=0.025
+sample2=0.049999999999999996
+sample3=0.075
+sample4=0.1
+sample5=0.12499999999999999
+sample6=0.15
+sample7=0.17500000000000002
+sample8=0.2
+sample9=0.22500000000000003
+sample10=0.25
