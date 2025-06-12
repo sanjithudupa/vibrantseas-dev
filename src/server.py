@@ -9,7 +9,7 @@ from collections import deque
 import subprocess
 import shutil
 
-SCRIPTS_LOCATION = "/mit/scripts"
+SCRIPTS_LOCATION = "/workspace/src"
 
 app = Flask(__name__, static_folder='static', template_folder='templates')
 app.config['UPLOAD_FOLDER'] = 'uploads/'
@@ -140,7 +140,7 @@ def delete_job(batchname):
 
 @app.route("/", methods=['GET'])
 def index():
-    return render_template('web_interface.html')  # A form with enctype="multipart/form-data"    
+    return render_template('index.html')  # A form with enctype="multipart/form-data"    
 
 @app.route('/jobs', methods=['GET'])
 def jobs():

@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VibrantSeas Image Processor</title>
+    <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <link rel="stylesheet" href="/static/styles.css">
+    <style>
+        .card {
+            padding: 20px;
+            margin-bottom: 30px;
+            border: 1px solid #ccc;
+            border-radius: 10px;
+        }
+        .console-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0,0,0,0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .console-card {
+            background: white;
+            padding: 20px;
+            width: 80%;
+            max-height: 80%;
+            overflow: auto;
+            border-radius: 10px;
+        }
+        .log-display {
+            background: #eee;
+            padding: 10px;
+            max-height: 60vh;
+            overflow-y: scroll;
+            white-space: pre-wrap;
+        }
+        .spinner {
+            width: 24px;
+            height: 24px;
+            border: 3px solid #ccc;
+            border-top: 3px solid #007bff;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin-top: 10px;
+        }
+        .link-button {
+            background: none;
+            border: none;
+            color: blue;
+            text-decoration: underline;
+            cursor: pointer;
+        }
+        .disabled-link-button {
+            background: none;
+            border: none;
+            color: #ccc;
+            text-decoration: underline;
+            cursor: not-allowed;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div x-data="app()" x-init="init()" class="container" style="padding: 20px;">
+        <h1>VibrantSeas Job Manager</h1>
+
+        <!-- Upload Card -->
+        <div class="card">
+            <h3>Upload New Job</h3>
+            <form @submit.prevent="handleUpload">
+                <input
+                    type="file"
+                    accept=".tar.gz"
+                    @change="file = $event.target.files[0]"
+                /><br />
+                <input
+                    type="text"
+                    placeholder="Batch name"
+                    x-model="batchname"
+                    required
+                    style="margin-top: 10px;"
+                /><br />
+                <button type="submit" style="margin-top: 10px;">Upload</button>
+                <div x-show="uploading" class="spinner"></div>
+            </form>
+        </div>
+
+        <!-- Job Table -->
+        <div class="card">
+            <h3>Current Jobs</h3>
+            <table border="1" cellpadding="20">
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Timestamp</th>
+                        <th>Status</th>
+                        <th>Console</th>
+                        <th>Download</th>
+                        <th>Delete</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <template x-for="job in jobs" :key="job.name">
+                        <tr>
+                            <td x-text="job.name"></td>
+                            <td x-text="job.timestamp"></td>
+                            <td x-text="job.status"></td>
+                            <td>
+                                <button 
+                                    class="link-button"
+                                    @click="fetchLogs(job.name)"
+                                >
+                                    Console
+                                </button>
+                            </td>
+                            <td>
+                                <button
+                                    :class="isJobDone(job) ? 'link-button' : 'disabled-link-button'"
+                                    @click="downloadJob(job.name)"
+                                    :disabled="!isJobDone(job)"
+                                >
+                                    Download
+                                </button>
+                            </td>
+                            <td>
+                                <button
+                                    :class="isJobDone(job) ? 'link-button' : 'disabled-link-button'"
+                                    @click="deleteJob(job.name)"
+                                    :disabled="!isJobDone(job)"
+                                >
+                                    Delete
+                                </button>
+                            </td>
+                        </tr>
+                    </template>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Console Popup -->
+        <div 
+            x-show="consoleVisible" 
+            class="console-overlay"
+            @click.self="consoleVisible = false"
+        >
+            <div class="console-card">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <h4 x-text="'Console Output: ' + activeBatch"></h4>
+                    <button class="link-button" @click="consoleVisible = false">Close</button>
+                </div>
+                <pre class="log-display" x-text="activeLog"></pre>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function app() {
+            return {
+                batchname: '',
+                file: null,
+                jobs: [],
+                consoleVisible: false,
+                activeLog: '',
+                activeBatch: '',
+                uploading: false,
+                interval: null,
+
+                init() {
+                    this.fetchJobs();
+                    this.interval = setInterval(() => this.fetchJobs(), 5000);
+                },
+
+                isJobDone(job) {
+                    return job.status === 'Done' || 
+                           job.status.startsWith('Failed') || 
+                           job.status.startsWith('Error');
+                },
+
+                async fetchJobs() {
+                    try {
+                        const response = await fetch('/jobs');
+                        const data = await response.json();
+                        this.jobs = data;
+                    } catch (err) {
+                        console.error("Failed to fetch jobs", err);
+                    }
+                },
+
+                async fetchLogs(batchname) {
+                    try {
+                        const response = await fetch(`/logs/${batchname}`);
+                        const data = await response.json();
+                        this.consoleVisible = true;
+                        this.activeLog = (data.logs || []).join('\n');
+                        this.activeBatch = batchname;
+                    } catch (err) {
+                        alert("Failed to fetch logs: " + err.message);
+                    }
+                },
+
+                async handleUpload(e) {
+                    if (!this.file || !this.batchname.trim()) {
+                        alert("Please select a file and enter a batch name.");
+                        return;
+                    }
+
+                    const formData = new FormData();
+                    formData.append("file", this.file);
+                    formData.append("batchname", this.batchname);
+
+                    this.uploading = true;
+
+                    try {
+                        const response = await fetch('/upload', {
+                            method: 'POST',
+                            body: formData
+                        });
+                        const data = await response.json();
+
+                        if (data.error) throw new Error(data.error);
+
+                        await this.fetchJobs();
+                        this.batchname = '';
+                        this.file = null;
+                    } catch (err) {
+                        alert("Upload failed: " + err.message);
+                    } finally {
+                        this.uploading = false;
+                    }
+                },
+
+                async deleteJob(batchname) {
+                    if (!window.confirm(`Are you sure you want to delete job "${batchname}"?`)) return;
+
+                    try {
+                        const response = await fetch(`/delete/${batchname}`, { method: 'DELETE' });
+                        const data = await response.json();
+                        alert(data.message || "Deleted");
+                        this.fetchJobs();
+                    } catch (err) {
+                        alert("Failed to delete job: " + err.message);
+                    }
+                },
+
+                async downloadJob(batchname) {
+                    try {
+                        const response = await fetch(`/delete/${batchname}`, { method: 'DELETE' });
+                        const data = await response.json();
+                        alert("Pretending to download... Actually deleted: " + batchname);
+                        this.fetchJobs();
+                    } catch (err) {
+                        alert("Download failed (actually deleted): " + err.message);
+                    }
+                }
+            }
+        }
+    </script>
+</body>
+</html>
