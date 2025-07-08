@@ -12,3 +12,15 @@ When you first build it, it will take a while to open up. You can see what step 
 Once the container is fully booted up, you can create a new terminal using either the + button on the top right of the terminal window or by opening the command pallete and writing `Create new Terminal`. 
 
 Now your devcontainer is fully set up and you are effectively coding inside of an emulated Linux box with two versions of SeaDAS fully installed!
+
+**in order to use the ESPA downloader**: you must create an account on the ESPA USGS website (you already have one if you have been manually generating images already), then create an api access token on the account and in `src/` create a file called `.env`.
+
+Fill `.env` as follows:
+```
+ESPA_USERNAME=
+ESPA_PASSWORD=
+ESPA_TOKEN=
+```
+and put your account username, password, and api token after the equal sign on the respective lines.
+
+**If you do not do this, then the ESPA downloader will not work.**

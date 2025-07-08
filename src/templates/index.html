@@ -62,6 +62,62 @@
             text-decoration: underline;
             cursor: not-allowed;
         }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        .form-group input, .form-group select {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        .form-row {
+            display: flex;
+            gap: 15px;
+        }
+        .form-row .form-group {
+            flex: 1;
+        }
+        .pipeline-status {
+            margin-top: 10px;
+            padding: 10px;
+            border-radius: 4px;
+            background-color: #f8f9fa;
+            border-left: 4px solid #007bff;
+        }
+        .pipeline-status.success {
+            border-left-color: #28a745;
+            background-color: #d4edda;
+        }
+        .pipeline-status.error {
+            border-left-color: #dc3545;
+            background-color: #f8d7da;
+        }
+        .collapsible {
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            margin-bottom: 10px;
+        }
+        .collapsible-header {
+            background-color: #f8f9fa;
+            padding: 10px 15px;
+            cursor: pointer;
+            border-bottom: 1px solid #ddd;
+            font-weight: bold;
+        }
+        .collapsible-content {
+            padding: 15px;
+            display: none;
+        }
+        .collapsible-content.show {
+            display: block;
+        }
         @keyframes spin {
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
@@ -72,31 +128,107 @@
     <div x-data="app()" x-init="init()" class="container" style="padding: 20px;">
         <h1>VibrantSeas Job Manager</h1>
 
-        <!-- Upload Card -->
+        <!-- Full Pipeline Card -->
         <div class="card">
-            <h3>Upload New Job</h3>
-            <form @submit.prevent="handleUpload">
-                <input
-                    type="file"
-                    accept=".tar.gz"
-                    @change="file = $event.target.files[0]"
-                /><br />
-                <input
-                    type="text"
-                    placeholder="Batch name"
-                    x-model="batchname"
-                    required
-                    style="margin-top: 10px;"
-                /><br />
-                <button type="submit" style="margin-top: 10px;">Upload</button>
-                <div x-show="uploading" class="spinner"></div>
+            <h3>Full Pipeline: Scene Search → Download → Process</h3>
+            <p>Search for Landsat scenes by date range, download them, and process through the complete pipeline.</p>
+            
+            <form @submit.prevent="handlePipelineSubmit">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="pipeline-batchname">Batch Name:</label>
+                        <input
+                            type="text"
+                            id="pipeline-batchname"
+                            x-model="pipelineBatchname"
+                            placeholder="e.g., BATCH_june2023"
+                            required
+                        />
+                    </div>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="start-date">Start Date:</label>
+                        <input
+                            type="date"
+                            id="start-date"
+                            x-model="startDate"
+                            required
+                        />
+                    </div>
+                    <div class="form-group">
+                        <label for="end-date">End Date:</label>
+                        <input
+                            type="date"
+                            id="end-date"
+                            x-model="endDate"
+                            required
+                        />
+                    </div>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="cloud-cover">Max Cloud Cover (%):</label>
+                        <input
+                            type="number"
+                            id="cloud-cover"
+                            x-model="cloudCover"
+                            placeholder="80"
+                            min="0"
+                            max="100"
+                            step="5"
+                        />
+                    </div>
+                </div>
+                
+                <button type="submit" style="margin-top: 10px;" :disabled="pipelineRunning">
+                    <span x-show="!pipelineRunning">Start Full Pipeline</span>
+                    <span x-show="pipelineRunning">Running...</span>
+                </button>
+                <div x-show="pipelineRunning" class="spinner"></div>
+                
+                <div x-show="pipelineStatus" class="pipeline-status" :class="pipelineStatusType">
+                    <strong x-text="pipelineStatusTitle"></strong><br>
+                    <span x-text="pipelineStatusMessage"></span>
+                </div>
             </form>
+        </div>
+
+        <!-- Manual Upload Card (Collapsed by Default) -->
+        <div class="card">
+            <div class="collapsible">
+                <div class="collapsible-header" @click="manualUploadVisible = !manualUploadVisible">
+                    Manual Upload (if you've already downloaded the Landsat files manually)
+                    <span x-text="manualUploadVisible ? '▼' : '▶'"></span>
+                </div>
+                <div class="collapsible-content" :class="{ 'show': manualUploadVisible }">
+                    <p>Upload an existing .tar.gz file for processing.</p>
+                    <form @submit.prevent="handleUpload">
+                        <input
+                            type="file"
+                            accept=".tar.gz"
+                            @change="file = $event.target.files[0]"
+                        /><br />
+                        <input
+                            type="text"
+                            placeholder="Batch name"
+                            x-model="batchname"
+                            required
+                            style="margin-top: 10px;"
+                        /><br />
+                        <button type="submit" style="margin-top: 10px;">Upload</button>
+                        <div x-show="uploading" class="spinner"></div>
+                    </form>
+                </div>
+            </div>
         </div>
 
         <!-- Job Table -->
         <div class="card">
             <h3>Current Jobs</h3>
-            <table border="1" cellpadding="20">
+            <table border="1" cellpadding="20" style="width: 100%;">
                 <thead>
                     <tr>
                         <th>Name</th>
@@ -132,9 +264,8 @@
                             </td>
                             <td>
                                 <button
-                                    :class="isJobDone(job) ? 'link-button' : 'disabled-link-button'"
+                                    class="link-button"
                                     @click="deleteJob(job.name)"
-                                    :disabled="!isJobDone(job)"
                                 >
                                     Delete
                                 </button>
@@ -164,24 +295,46 @@
     <script>
         function app() {
             return {
+                // Pipeline form data
+                pipelineBatchname: '',
+                startDate: '',
+                endDate: '',
+                cloudCover: '80',
+                pipelineRunning: false,
+                pipelineStatus: '',
+                pipelineStatusType: '',
+                pipelineStatusTitle: '',
+                pipelineStatusMessage: '',
+                
+                // Manual upload form data
                 batchname: '',
                 file: null,
+                uploading: false,
+                manualUploadVisible: false,
+                
+                // Job management
                 jobs: [],
                 consoleVisible: false,
                 activeLog: '',
                 activeBatch: '',
-                uploading: false,
                 interval: null,
 
                 init() {
                     this.fetchJobs();
                     this.interval = setInterval(() => this.fetchJobs(), 5000);
+                    
+                    // Set default dates (last month)
+                    const today = new Date();
+                    const lastMonth = new Date(today.getFullYear(), today.getMonth() - 1, today.getDate());
+                    this.startDate = lastMonth.toISOString().split('T')[0];
+                    this.endDate = today.toISOString().split('T')[0];
                 },
 
                 isJobDone(job) {
                     return job.status === 'Done' || 
                            job.status.startsWith('Failed') || 
-                           job.status.startsWith('Error');
+                           job.status.startsWith('Error') ||
+                           job.status === 'All files processed';
                 },
 
                 async fetchJobs() {
@@ -203,6 +356,64 @@
                         this.activeBatch = batchname;
                     } catch (err) {
                         alert("Failed to fetch logs: " + err.message);
+                    }
+                },
+
+                async handlePipelineSubmit(e) {
+                    if (!this.pipelineBatchname.trim() || !this.startDate || !this.endDate) {
+                        alert("Please fill in all required fields.");
+                        return;
+                    }
+
+                    if (new Date(this.startDate) > new Date(this.endDate)) {
+                        alert("Start date must be before end date.");
+                        return;
+                    }
+
+                    this.pipelineRunning = true;
+                    this.pipelineStatus = '';
+                    this.pipelineStatusType = '';
+                    this.pipelineStatusTitle = '';
+                    this.pipelineStatusMessage = '';
+
+                    try {
+                        const response = await fetch('/pipeline', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                            },
+                            body: JSON.stringify({
+                                batchname: this.pipelineBatchname,
+                                start_date: this.startDate,
+                                end_date: this.endDate,
+                                cloud_cover: parseFloat(this.cloudCover) / 100
+                            })
+                        });
+
+                        const data = await response.json();
+
+                        if (data.error) {
+                            throw new Error(data.error);
+                        }
+
+                        this.pipelineStatus = 'success';
+                        this.pipelineStatusType = 'success';
+                        this.pipelineStatusTitle = 'Pipeline Started Successfully!';
+                        this.pipelineStatusMessage = `Job "${this.pipelineBatchname}" has been queued. Check the job table below for progress.`;
+
+                        // Reset form
+                        this.pipelineBatchname = '';
+                        
+                        // Refresh jobs list
+                        await this.fetchJobs();
+
+                    } catch (err) {
+                        this.pipelineStatus = 'error';
+                        this.pipelineStatusType = 'error';
+                        this.pipelineStatusTitle = 'Pipeline Failed to Start';
+                        this.pipelineStatusMessage = err.message;
+                    } finally {
+                        this.pipelineRunning = false;
                     }
                 },
 
